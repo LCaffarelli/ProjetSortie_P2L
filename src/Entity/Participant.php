@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\ParticipantRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ParticipantRepository::class)]
@@ -30,6 +32,22 @@ class Participant
 
     #[ORM\Column]
     private ?bool $actif = null;
+
+    #[ORM\ManyToMany(targetEntity: Sortie::class, mappedBy: 'participants')]
+    private Collection $sorties;
+
+    #[ORM\OneToMany(mappedBy: 'organisateur', targetEntity: Sortie::class)]
+    private Collection $mesEvenements;
+
+    #[ORM\ManyToOne(inversedBy: 'participants')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Site $site = null;
+
+    public function __construct()
+    {
+        $this->sorties = new ArrayCollection();
+        $this->mesEvenements = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -104,6 +122,75 @@ class Participant
     public function setActif(bool $actif): self
     {
         $this->actif = $actif;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Sortie>
+     */
+    public function getSorties(): Collection
+    {
+        return $this->sorties;
+    }
+
+    public function addSorty(Sortie $sorty): self
+    {
+        if (!$this->sorties->contains($sorty)) {
+            $this->sorties->add($sorty);
+            $sorty->addParticipant($this);
+        }
+
+        return $this;
+    }
+
+    public function removeSorty(Sortie $sorty): self
+    {
+        if ($this->sorties->removeElement($sorty)) {
+            $sorty->removeParticipant($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Sortie>
+     */
+    public function getMesEvenements(): Collection
+    {
+        return $this->mesEvenements;
+    }
+
+    public function addMesEvenement(Sortie $mesEvenement): self
+    {
+        if (!$this->mesEvenements->contains($mesEvenement)) {
+            $this->mesEvenements->add($mesEvenement);
+            $mesEvenement->setOrganisateur($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMesEvenement(Sortie $mesEvenement): self
+    {
+        if ($this->mesEvenements->removeElement($mesEvenement)) {
+            // set the owning side to null (unless already changed)
+            if ($mesEvenement->getOrganisateur() === $this) {
+                $mesEvenement->setOrganisateur(null);
+            }
+        }
+
+        return $this;
+    }
+
+    public function getSite(): ?Site
+    {
+        return $this->site;
+    }
+
+    public function setSite(?Site $site): self
+    {
+        $this->site = $site;
 
         return $this;
     }
